@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useTransition } from "react";
 
 interface ContentBlock {
   type: "p" | "h2" | "quote" | "signoff";
@@ -8,12 +8,15 @@ interface ContentBlock {
 }
 
 interface NoteFormProps {
-  initialData?: any;
+  initialData?: { title: string; slug: string; snippet: string; category: string; date: string; readTime: string; content: string; published: boolean };
   action: (formData: FormData) => Promise<void>;
   buttonText: string;
 }
 
 export default function NoteForm({ initialData, action, buttonText }: NoteFormProps) {
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState("");
+  const [preview, setPreview] = useState(false);
   const [content, setContent] = useState<ContentBlock[]>(
     initialData?.content ? JSON.parse(initialData.content) : []
   );
@@ -33,7 +36,24 @@ export default function NoteForm({ initialData, action, buttonText }: NoteFormPr
   };
 
   return (
-    <form action={action} className="space-y-6">
+    <form onSubmit={(event) => {
+      event.preventDefault();
+      const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
+      const intent = submitter?.value || "save";
+      if (intent === "publish" && !window.confirm("Publish this note? It will become visible to everyone on your website.")) return;
+      const data = new FormData(event.currentTarget);
+      data.set("intent", intent);
+      setError("");
+      startTransition(async () => {
+        try { await action(data); }
+        catch (error) {
+          // Let Next.js handle its redirect signal after a successful save.
+          if (error && typeof error === "object" && "digest" in error && String(error.digest).startsWith("NEXT_REDIRECT")) throw error;
+          setError("The note could not be saved. Your edits are still here; please try again.");
+        }
+      });
+    }} className="space-y-6">
+      <p role="status" className="text-sm text-[#6B6861]">{initialData?.published ? "Published — saved changes update the live note." : "Draft — only visible in your admin dashboard. Saving does not publish it."}</p>
       <div className="grid grid-cols-2 gap-6">
         <div>
           <label className="block text-xs font-semibold uppercase text-[#6B6861] mb-2 font-sans">Title</label>
@@ -97,9 +117,16 @@ export default function NoteForm({ initialData, action, buttonText }: NoteFormPr
         </div>
       </div>
 
-      <button type="submit" className="w-full bg-black text-white font-semibold py-3 hover:bg-gray-800 transition-colors">
-        {buttonText}
+      {error && <p role="alert" className="text-red-700">{error}</p>}
+      <button disabled={pending} name="intent" value="save" type="submit" className="w-full bg-black text-white font-semibold py-3 hover:bg-gray-800 transition-colors">
+        {pending ? "Saving…" : buttonText}
       </button>
+      {initialData && !initialData.published && <button disabled={pending} name="intent" value="publish" type="submit" className="w-full border border-black py-3 font-semibold">Publish Note</button>}
+      <button type="button" onClick={() => setPreview(!preview)} className="underline text-sm">{preview ? "Hide Preview" : "Preview Content"}</button>
+      {preview && <article className="space-y-5 border-t pt-6" aria-label="Private content preview">
+        <p className="text-xs uppercase">Private preview — not published</p>
+        {content.map((block, index) => block.type === "h2" ? <h2 key={index} className="font-georgia text-2xl">{block.text}</h2> : block.type === "quote" ? <blockquote key={index} className="border-l-2 pl-4 italic">{block.text}</blockquote> : <p key={index} className="font-georgia whitespace-pre-line leading-relaxed">{block.text}</p>)}
+      </article>}
     </form>
   );
 }
