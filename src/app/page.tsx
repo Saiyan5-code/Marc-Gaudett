@@ -11,6 +11,7 @@ export const revalidate = 0; // Ensure data is always fresh
 
 export default async function Page() {
   const notes = await prisma.note.findMany({
+    where: { published: true },
     orderBy: { createdAt: 'desc' },
     take: 3
   });

@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/auth";
 import React from "react";
 import NoteForm from "@/components/admin/NoteForm";
 import { updateNote, deleteNote } from "@/actions/notes";
@@ -5,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 
 export default async function EditNotePage({ params }: { params: Promise<{ id: string }> }) {
+  await requireAdmin();
   const resolvedParams = await params;
   
   const note = await prisma.note.findUnique({
@@ -29,7 +31,7 @@ export default async function EditNotePage({ params }: { params: Promise<{ id: s
         </form>
       </div>
       <div className="bg-white p-8 border border-[#c5c1b9] shadow-sm">
-        <NoteForm initialData={note} action={updateAction} buttonText="Save Changes" />
+        <NoteForm initialData={note} action={updateAction} buttonText={note.published ? "Save Live Changes" : "Save Draft"} />
       </div>
     </div>
   );

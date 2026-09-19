@@ -11,6 +11,7 @@ export const revalidate = 0;
 
 export default async function NotesPage() {
   const notes = await prisma.note.findMany({
+    where: { published: true },
     orderBy: { createdAt: 'desc' }
   });
   return <NotesClient initialNotes={notes} />;

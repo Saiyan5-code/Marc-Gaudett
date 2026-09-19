@@ -1,8 +1,10 @@
+import { requireAdmin } from "@/lib/auth";
 import React from "react";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 
 export default async function AdminDashboard() {
+  await requireAdmin();
   // Fetch all notes from database, sorted by newest first
   const notes = await prisma.note.findMany({
     orderBy: { createdAt: 'desc' }
@@ -32,6 +34,7 @@ export default async function AdminDashboard() {
                 <div>
                   <h3 className="font-georgia text-xl text-[#171714] mb-1">{note.title}</h3>
                   <div className="flex gap-4 text-xs font-sans uppercase tracking-wider text-[#6B6861]">
+                    <span className={note.published ? "text-green-700" : "text-amber-800"}>{note.published ? "Published" : "Draft — private"}</span>
                     <span>{note.category}</span>
                     <span>&bull;</span>
                     <span>{note.date}</span>
@@ -40,13 +43,13 @@ export default async function AdminDashboard() {
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
-                  <Link 
+                  {note.published && <Link
                     href={`/notes/${note.slug}`} 
                     target="_blank"
                     className="text-sm text-blue-600 hover:underline font-sans"
                   >
                     View Live
-                  </Link>
+                  </Link>}
                   <Link 
                     href={`/admin/notes/${note.id}`} 
                     className="text-sm font-semibold bg-[#e0dfdc] px-4 py-2 hover:bg-[#d0cfcc] transition-colors text-[#171714]"
