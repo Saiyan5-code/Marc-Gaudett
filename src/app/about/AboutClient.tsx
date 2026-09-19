@@ -95,6 +95,49 @@ export default function AboutClient() {
                     </p>
                   </div>
                 </div>
+                {/* Selected Wins section */}
+                <div className="pt-8 border-t border-[#c5c1b9] space-y-4">
+                  <h3 className="font-georgia font-normal text-[#171714] text-[32px] leading-tight">Selected Wins</h3>
+                  <ul className="space-y-3 font-sans text-[15px] text-[#6B6861]">
+                    {[
+                      {
+                        title: "New company data sources in SuperSearch",
+                        href: "https://www.linkedin.com/posts/marcgaudett_new-company-sources-in-supersearch-activity-7493426428487651329-jq7O",
+                        description: "Expanding SuperSearch's B2B data coverage for lead discovery.",
+                      },
+                      {
+                        title: "SuperSearch's Engagement Score upgrade",
+                        href: "https://www.linkedin.com/posts/marcgaudett_new-supersearch-just-got-two-upgrades-for-activity-7460660053004402690-LdIG",
+                        description: "Prioritizing leads most likely to convert.",
+                      },
+                      {
+                        title: "Global outbound webinar with HubSpot",
+                        href: "https://www.linkedin.com/posts/marcgaudett_we-just-wrapped-a-global-outbound-webinar-activity-7429570466836656128-FiIM",
+                        description: "On why cold outreach fails, and what actually works.",
+                      },
+                      {
+                        title: "Where AI is taking GTM",
+                        href: "https://www.linkedin.com/posts/marcgaudett_the-biggest-shift-in-ai-right-now-isnt-a-activity-7425666634561810432-JRs4",
+                        description: "Tools to agents, interfaces to infrastructure — why ecosystems are the strategy.",
+                      },
+                    ].map((win) => (
+                      <li key={win.href} className="flex items-start gap-2">
+                        <span aria-hidden="true" className="w-1.5 h-1.5 mt-2 rounded-full bg-black shrink-0"></span>
+                        <span>
+                          <a
+                            href={win.href}
+                            target="_blank"
+                            rel="noopener"
+                            className="text-gray-600 hover:text-black transition-colors"
+                          >
+                            {win.title}
+                          </a>
+                          {" — "}{win.description}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
  
               {/* Right Column: Topics */}
