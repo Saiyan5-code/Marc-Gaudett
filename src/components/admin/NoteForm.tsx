@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 
 interface ContentBlock {
   type: "p" | "h2" | "quote" | "signoff";
@@ -10,13 +10,15 @@ interface ContentBlock {
 interface NoteFormProps {
   initialData?: any;
   action: (formData: FormData) => Promise<void>;
-  buttonText: string;
+  buttonText?: string; // kept for backward compat but ignored
 }
 
-export default function NoteForm({ initialData, action, buttonText }: NoteFormProps) {
+export default function NoteForm({ initialData, action }: NoteFormProps) {
   const [content, setContent] = useState<ContentBlock[]>(
     initialData?.content ? JSON.parse(initialData.content) : []
   );
+  const statusRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
   const addBlock = (type: ContentBlock["type"]) => {
     setContent([...content, { type, text: "" }]);
@@ -32,8 +34,21 @@ export default function NoteForm({ initialData, action, buttonText }: NoteFormPr
     setContent(content.filter((_, i) => i !== index));
   };
 
+  const handleSubmit = (status: "draft" | "published") => {
+    if (statusRef.current) statusRef.current.value = status;
+    formRef.current?.requestSubmit();
+  };
+
   return (
-    <form action={action} className="space-y-6">
+    <form ref={formRef} action={action} className="space-y-6">
+      {/* Hidden status field — set by button click */}
+      <input
+        type="hidden"
+        name="status"
+        ref={statusRef}
+        defaultValue={initialData?.status || "draft"}
+      />
+
       <div className="grid grid-cols-2 gap-6">
         <div>
           <label className="block text-xs font-semibold uppercase text-[#6B6861] mb-2 font-sans">Title</label>
@@ -67,16 +82,16 @@ export default function NoteForm({ initialData, action, buttonText }: NoteFormPr
 
       <div className="border-t border-[#c5c1b9] pt-6 mt-6">
         <label className="block text-sm font-bold text-[#171714] mb-4 font-georgia">Content Blocks</label>
-        
+
         <input type="hidden" name="content" value={JSON.stringify(content)} />
-        
+
         <div className="space-y-4 mb-6">
           {content.map((block, index) => (
             <div key={index} className="flex gap-4 items-start border border-[#e0dfdc] p-4 bg-white">
               <div className="w-24 shrink-0 font-sans text-xs uppercase font-semibold text-[#6B6861] pt-2">
                 {block.type === 'p' ? 'Paragraph' : block.type === 'h2' ? 'Heading 2' : block.type === 'quote' ? 'Quote' : 'Signoff'}
               </div>
-              <textarea 
+              <textarea
                 value={block.text}
                 onChange={(e) => updateBlock(index, e.target.value)}
                 className="w-full border border-[#c5c1b9] p-2 text-sm font-sans bg-transparent"
@@ -97,9 +112,23 @@ export default function NoteForm({ initialData, action, buttonText }: NoteFormPr
         </div>
       </div>
 
-      <button type="submit" className="w-full bg-black text-white font-semibold py-3 hover:bg-gray-800 transition-colors">
-        {buttonText}
-      </button>
+      {/* Dual action buttons */}
+      <div className="flex gap-4 pt-2 border-t border-[#c5c1b9]">
+        <button
+          type="button"
+          onClick={() => handleSubmit("draft")}
+          className="flex-1 border-2 border-[#c5c1b9] text-[#171714] font-semibold py-3 hover:bg-[#f0efeb] transition-colors font-sans text-sm"
+        >
+          Save as Draft
+        </button>
+        <button
+          type="button"
+          onClick={() => handleSubmit("published")}
+          className="flex-1 bg-black text-white font-semibold py-3 hover:bg-gray-800 transition-colors font-sans text-sm"
+        >
+          Publish Note
+        </button>
+      </div>
     </form>
   );
 }

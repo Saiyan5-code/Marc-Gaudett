@@ -12,12 +12,13 @@ export async function createNote(formData: FormData) {
   const date = formData.get("date") as string;
   const readTime = formData.get("readTime") as string;
   const content = formData.get("content") as string; // JSON string
+  const status = (formData.get("status") as string) || "draft";
 
   // Sanitize the slug: remove 'notes/', replace spaces/special chars with hyphens, lowercase
   slug = slug.replace(/^notes\//i, '').replace(/[^a-zA-Z0-9-]/g, '-').replace(/-+/g, '-').toLowerCase();
 
   await prisma.note.create({
-    data: { title, slug, snippet, category, date, readTime, content },
+    data: { title, slug, snippet, category, date, readTime, content, status },
   });
 
   revalidatePath("/admin");
@@ -33,13 +34,14 @@ export async function updateNote(id: string, formData: FormData) {
   const date = formData.get("date") as string;
   const readTime = formData.get("readTime") as string;
   const content = formData.get("content") as string;
+  const status = (formData.get("status") as string) || "draft";
 
   // Sanitize the slug
   slug = slug.replace(/^notes\//i, '').replace(/[^a-zA-Z0-9-]/g, '-').replace(/-+/g, '-').toLowerCase();
 
   await prisma.note.update({
     where: { id },
-    data: { title, slug, snippet, category, date, readTime, content },
+    data: { title, slug, snippet, category, date, readTime, content, status },
   });
 
   revalidatePath("/admin");
@@ -55,4 +57,22 @@ export async function deleteNote(id: string) {
   revalidatePath("/admin");
   revalidatePath("/notes");
   redirect("/admin");
+}
+
+export async function publishNote(id: string) {
+  await prisma.note.update({
+    where: { id },
+    data: { status: "published" },
+  });
+  revalidatePath("/admin");
+  revalidatePath("/notes");
+}
+
+export async function unpublishNote(id: string) {
+  await prisma.note.update({
+    where: { id },
+    data: { status: "draft" },
+  });
+  revalidatePath("/admin");
+  revalidatePath("/notes");
 }

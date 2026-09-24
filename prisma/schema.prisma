@@ -16,7 +16,8 @@ model Note {
   date      String
   readTime  String
   category  String
-  content   String   
+  content   String
+  status    String   @default("published")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

@@ -7,7 +7,7 @@ export const revalidate = 0;
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const resolvedParams = await params;
-  const note = await prisma.note.findUnique({ where: { slug: resolvedParams.slug } });
+  const note = await prisma.note.findFirst({ where: { slug: resolvedParams.slug, status: "published" } });
   return {
     title: note ? `${note.title} | Operator Notes` : "Note Not Found",
   };
@@ -16,8 +16,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 export default async function NotePage({ params }: { params: Promise<{ slug: string }> }) {
   const resolvedParams = await params;
   
-  const note = await prisma.note.findUnique({
-    where: { slug: resolvedParams.slug }
+  const note = await prisma.note.findFirst({
+    where: { slug: resolvedParams.slug, status: "published" }
   });
 
   if (!note) {
