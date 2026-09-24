@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import fs from "fs";
-import path from "path";
+import prisma from "@/lib/prisma";
 
 export async function POST(request: NextRequest) {
   // Only allow authenticated admins
@@ -28,49 +27,29 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Verify current password against the env var
-  if (currentPassword !== process.env.ADMIN_PASSWORD) {
+  // Get effective current password: DB takes priority over env var
+  const dbSetting = await prisma.siteSettings.findUnique({
+    where: { key: "ADMIN_PASSWORD" },
+  });
+  const effectivePassword = dbSetting?.value ?? process.env.ADMIN_PASSWORD;
+
+  // Verify current password
+  if (currentPassword !== effectivePassword) {
     return NextResponse.json(
       { error: "Current password is incorrect." },
       { status: 403 }
     );
   }
 
-  // Update the .env file on disk (works for local/self-hosted deployments)
-  try {
-    const envPath = path.resolve(process.cwd(), ".env");
+  // Save new password to the database
+  await prisma.siteSettings.upsert({
+    where: { key: "ADMIN_PASSWORD" },
+    update: { value: newPassword },
+    create: { key: "ADMIN_PASSWORD", value: newPassword },
+  });
 
-    if (!fs.existsSync(envPath)) {
-      return NextResponse.json(
-        { error: "Could not locate .env file. Password change is not supported in this environment." },
-        { status: 500 }
-      );
-    }
+  // Also update in-memory so the current server session reflects the change immediately
+  process.env.ADMIN_PASSWORD = newPassword;
 
-    let envContent = fs.readFileSync(envPath, "utf-8");
-
-    // Replace the ADMIN_PASSWORD line
-    if (envContent.includes("ADMIN_PASSWORD=")) {
-      envContent = envContent.replace(
-        /^ADMIN_PASSWORD=.*$/m,
-        `ADMIN_PASSWORD="${newPassword}"`
-      );
-    } else {
-      // Append if not present
-      envContent += `\nADMIN_PASSWORD="${newPassword}"\n`;
-    }
-
-    fs.writeFileSync(envPath, envContent, "utf-8");
-
-    // Also update the in-memory env var so the new password works immediately
-    process.env.ADMIN_PASSWORD = newPassword;
-
-    return NextResponse.json({ success: true });
-  } catch (err) {
-    console.error("Failed to update .env:", err);
-    return NextResponse.json(
-      { error: "Failed to save new password. Check server permissions." },
-      { status: 500 }
-    );
-  }
+  return NextResponse.json({ success: true });
 }
